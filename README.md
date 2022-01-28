@@ -1,5 +1,5 @@
 # temples
-Get a grid of upcoming LDS temple schedules.
+Visualize LDS temple schedules.
 
 It's harder than ever to get an appointment at temples of the Church of Jesus Christ of Latter-Day Saints. I thought it would be interesting to visualize how
 many endowment seats are available for upcoming sessions.
