@@ -5,7 +5,9 @@ It's harder than ever to get an appointment at temples of the Church of Jesus Ch
 many endowment seats are available for upcoming sessions.
 
 ## Pre-requisites
-You must have an LDS account and Chrome installed on your local machine.
+* An LDS account username and password.
+* Chrome installed.
+* Rust installed
 
 ## Running
 `USERNAME=<your LDS username> PASSWORD=<your LDS password> cargo run --release`
