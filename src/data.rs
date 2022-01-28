@@ -3,9 +3,7 @@ use std::{
     fmt,
     fmt::{Display, Formatter},
 };
-use time::{
-    macros::format_description, serde::rfc3339, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset,
-};
+use time::{macros::format_description, serde::rfc3339, OffsetDateTime, PrimitiveDateTime, Time};
 
 #[derive(Debug, Clone)]
 pub struct Day {
@@ -127,9 +125,6 @@ pub struct AppointmentJSON {
 
     #[serde(deserialize_with = "deserialize_time")]
     appointment_time: Time, // For some reason the time in appointment_date_time seems to be wrong. But this parameter is right in the timezone of the temple.
-
-    #[serde(skip)]
-    pub local_offset: Option<UtcOffset>,
 }
 
 impl Display for AppointmentJSON {
@@ -140,10 +135,7 @@ impl Display for AppointmentJSON {
         write!(
             f,
             "{} at {} - {}",
-            self.appointment_date_time
-                .to_offset(self.local_offset.unwrap_or(UtcOffset::UTC))
-                .format(&date_format)
-                .unwrap(),
+            self.appointment_date_time.format(&date_format).unwrap(),
             self.appointment_time.format(&time_format).unwrap(),
             self.appointment_type
         )

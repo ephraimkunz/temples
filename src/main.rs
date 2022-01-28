@@ -5,8 +5,8 @@ use network::{get_appointments, get_schedules};
 
 mod client;
 mod data;
-mod html;
 mod network;
+mod visualize;
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -29,7 +29,7 @@ fn main() -> Result<()> {
         println!("{schedule}");
     }
 
-    html::write_html_grid(&schedules, &temple)?;
+    visualize::write_output(&schedules, &temple, visualize::OutputFormat::Excel)?;
 
     Ok(())
 }

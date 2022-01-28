@@ -7,19 +7,13 @@ use crate::{
 };
 
 pub fn get_appointments(client: &Client) -> Result<Vec<AppointmentJSON>> {
-    let now = OffsetDateTime::now_local().expect("Unable to get local time");
-
     // Fetch appointments.
-    let mut appointments: Vec<AppointmentJSON> =
+    let appointments: Vec<AppointmentJSON> =
         ureq::get("https://tos.churchofjesuschrist.org/api/appointments")
             .set("Cookie", client.headers.get("Cookie").unwrap())
             .set("X-XSRF-TOKEN", client.headers.get("X-XSRF-TOKEN").unwrap())
             .call()?
             .into_json()?;
-
-    for appointment in appointments.iter_mut() {
-        appointment.local_offset = Some(now.offset());
-    }
 
     Ok(appointments)
 }
