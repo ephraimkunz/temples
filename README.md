@@ -14,6 +14,6 @@ You must have an LDS account and Chrome installed on your local machine.
 An HTML file will be generated with a grid of upcoming seats for sessions. I've found it's easiest to open this in Chrome, then convert it to PDF using the `GoFullPage - Full Page Screen Capture`
 extension. Then it can be converted to other formats from there. Here are some sample outputs from the tool.
 
-![Oakland Temple schedule](../sample_output/Oakland.png?raw=true)
+![Oakland Temple schedule](./sample_output/Oakland.png?raw=true)
 
-![Logan Temple schedule](../sample_output/Logan.png?raw=true)
+![Logan Temple schedule](./sample_output/Logan.png?raw=true)
