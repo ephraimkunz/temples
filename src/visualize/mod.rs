@@ -1,5 +1,6 @@
 use crate::data::{Day, Temple};
 use anyhow::Result;
+use clap::ArgEnum;
 
 use self::{excel::ExcelWriter, html::HTMLWriter};
 
@@ -7,18 +8,24 @@ mod excel;
 mod html;
 
 #[allow(dead_code)]
-pub enum OutputFormat {
+#[derive(ArgEnum, Clone)]
+pub enum ScheduleOutputFormat {
     Html,
     Excel,
 }
 
 trait OutputWriter {
-    fn write_output(schedules: &[Day], temple: &Temple) -> Result<()>;
+    fn write_output(schedules: &[Day], temple: &Temple, filename: &str) -> Result<()>;
 }
 
-pub fn write_output(schedules: &[Day], temple: &Temple, format: OutputFormat) -> Result<()> {
+pub fn write_output(
+    schedules: &[Day],
+    temple: &Temple,
+    format: ScheduleOutputFormat,
+    filename: &str,
+) -> Result<()> {
     match format {
-        OutputFormat::Html => HTMLWriter::write_output(schedules, temple),
-        OutputFormat::Excel => ExcelWriter::write_output(schedules, temple),
+        ScheduleOutputFormat::Html => HTMLWriter::write_output(schedules, temple, filename),
+        ScheduleOutputFormat::Excel => ExcelWriter::write_output(schedules, temple, filename),
     }
 }

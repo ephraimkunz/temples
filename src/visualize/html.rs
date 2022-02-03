@@ -9,8 +9,8 @@ use super::OutputWriter;
 pub struct HTMLWriter;
 
 impl OutputWriter for HTMLWriter {
-    fn write_output(schedules: &[Day], temple: &Temple) -> Result<()> {
-        let mut output = std::fs::File::create("grid.html")?;
+    fn write_output(schedules: &[Day], temple: &Temple, filename: &str) -> Result<()> {
+        let mut output = std::fs::File::create(format!("{filename}.html"))?;
 
         const START_HOUR: u8 = 5;
         const END_HOUR: u8 = 20;
@@ -58,7 +58,7 @@ impl OutputWriter for HTMLWriter {
             <div class=\"grid-container\">",
             num_columns = schedules.len() + 1,
             num_rows = (END_HOUR - START_HOUR) * 2 + 1,
-            temple_name = temple
+            temple_name = temple.name
         );
 
         writeln!(output, "{}", prefix)?;

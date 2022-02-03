@@ -35,7 +35,7 @@ pub fn get_schedules(client: &Client, range: FetchRange, temple: &Temple) -> Res
                     "sessionMonth":next_date.month() as u8 - 1,
                     "sessionDay":next_date.day(),
                     "appointmentType":"PROXY_ENDOWMENT",
-                    "templeOrgId":temple.clone() as u32
+                    "templeOrgId":temple.temple_org_id as u32
                 }))?
                 .into_json()?;
 
@@ -68,4 +68,25 @@ pub fn get_schedules(client: &Client, range: FetchRange, temple: &Temple) -> Res
     }
 
     Ok(days)
+}
+
+pub fn get_temples() -> Result<Vec<Temple>> {
+    const START_DELIMITER: &str = "templeList\":";
+    const END_DELIMITER: &str = "}]";
+    let html = ureq::get("https://www.churchofjesuschrist.org/temples/list")
+        .call()?
+        .into_string()?;
+
+    let json_start = html
+        .find(START_DELIMITER)
+        .map(|i| i + START_DELIMITER.len())
+        .ok_or(anyhow::anyhow!("Couldn't find start of temple data"))?;
+    let json_end = html[json_start..]
+        .find(END_DELIMITER)
+        .map(|i| i + json_start + END_DELIMITER.len())
+        .ok_or(anyhow::anyhow!("Couldn't find end of temple data"))?;
+    let json_string = &html[json_start..json_end];
+
+    let temples: Vec<Temple> = serde_json::de::from_str(json_string).unwrap();
+    Ok(temples)
 }

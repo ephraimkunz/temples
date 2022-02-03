@@ -9,12 +9,12 @@ use super::OutputWriter;
 pub struct ExcelWriter;
 
 impl OutputWriter for ExcelWriter {
-    fn write_output(schedules: &[Day], temple: &Temple) -> Result<()> {
+    fn write_output(schedules: &[Day], temple: &Temple, filename: &str) -> Result<()> {
         const START_HOUR: u8 = 5;
         const END_HOUR: u8 = 20;
 
-        let workbook = Workbook::new("grid.xlsx");
-        let title_format = workbook.add_format();
+        let workbook = Workbook::new(&format!("{filename}.xlsx"));
+        let title_format = workbook.add_format().set_bold();
         let subtitle_format = workbook.add_format();
         let red_format = workbook
             .add_format()
@@ -36,7 +36,7 @@ impl OutputWriter for ExcelWriter {
             0,
             0,
             (schedules.len() + 1) as u16,
-            &format!("{temple}"),
+            temple.name.as_str(),
             Some(&title_format),
         )?;
         sheet.merge_range(
