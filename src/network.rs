@@ -87,6 +87,6 @@ pub fn get_temples() -> Result<Vec<Temple>> {
         .ok_or(anyhow::anyhow!("Couldn't find end of temple data"))?;
     let json_string = &html[json_start..json_end];
 
-    let temples: Vec<Temple> = serde_json::de::from_str(json_string).unwrap();
+    let temples: Vec<Temple> = serde_json::de::from_str(json_string)?;
     Ok(temples)
 }
