@@ -1,5 +1,5 @@
 # temples
-Tools for working with LDS Temples.
+Tools for working with LDS temple data.
 
 ## Features
 * View appointments for various ordinances you've made at the temple.
