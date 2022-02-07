@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::network::get_temples;
 use anyhow::Result;
 use clap::{ArgEnum, Parser, Subcommand};
@@ -57,8 +59,17 @@ enum Commands {
 
 #[derive(ArgEnum, Clone)]
 enum TempleOutputFormat {
+    /// ASCII table
     Table,
+
+    /// Full information in JSON
     Json,
+
+    /// Histogram of year of temple dedication
+    HistogramYear,
+
+    /// Histogram of temple country
+    HistogramCountry,
 }
 
 fn main() -> Result<()> {
@@ -102,6 +113,29 @@ fn main() -> Result<()> {
                 TempleOutputFormat::Json => {
                     println!("{}", serde_json::ser::to_string_pretty(&temples)?)
                 }
+                TempleOutputFormat::HistogramYear => {
+                    let mut histogram = HashMap::new();
+                    for temple in temples {
+                        if let Some(date) = temple.date {
+                            let count = histogram.entry(date.year()).or_insert(0);
+                            *count += 1;
+                        }
+                    }
+
+                    print_histogram(&histogram);
+                }
+
+                TempleOutputFormat::HistogramCountry => {
+                    let mut histogram = HashMap::new();
+                    for temple in temples {
+                        if !temple.country.is_empty() {
+                            let count = histogram.entry(temple.country).or_insert(0);
+                            *count += 1;
+                        }
+                    }
+
+                    print_histogram(&histogram);
+                }
             }
         }
         Commands::Appointments {} => {
@@ -138,4 +172,23 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn print_histogram<K>(histogram: &HashMap<K, u32>)
+where
+    K: std::cmp::Ord + std::fmt::Display + std::hash::Hash,
+{
+    let mut keys: Vec<_> = histogram.keys().collect();
+    keys.sort();
+
+    let widths = keys.iter().map(|k| k.to_string().len());
+    let max_width = widths.max().unwrap_or(0).min(20);
+
+    for key in keys {
+        print!("{:width$.prec$} ", key, width = max_width, prec = max_width);
+        for _ in 0..histogram[key] {
+            print!("*");
+        }
+        println!();
+    }
 }

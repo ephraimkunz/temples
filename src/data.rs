@@ -249,6 +249,7 @@ impl FromStr for OrdinanceType {
             "INITIATORY" => Ok(OrdinanceType::Initiatory),
             "ENDOWMENT" => Ok(OrdinanceType::Endowment),
             "SEALING" => Ok(OrdinanceType::Sealing),
+            "PROXY_SEALING" => Ok(OrdinanceType::Sealing),
             o => Err(format!("Unknown ordinance type {}", o)),
         }
     }
@@ -305,10 +306,11 @@ pub struct Temple {
 
     pub temple_org_id: u32,
 
+    pub country: String,
+
     location: String,
     temple_name_id: String,
     city: String,
     state_region: String,
-    country: String,
     sort_date: String,
 }
