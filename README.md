@@ -3,7 +3,7 @@ Tools for working with LDS temple data.
 
 ## Features
 * View appointments for various ordinances you've made at the temple.
-* Get a list of all temples and useful information about them such as dedication date and id in both human-readable and JSON format.
+* Get a list of all temples and useful information about them such as dedication date and id in both human-readable and JSON format. Print histograms of dedication dates and locations.
 * Visualize how many endowment seats are available for upcoming sessions at a given temple.
 
 ## Pre-requisites
