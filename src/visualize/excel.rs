@@ -2,7 +2,7 @@ use crate::{data::Day, Temple};
 use anyhow::Result;
 use std::collections::HashMap;
 use time::macros::format_description;
-use xlsxwriter::{FormatAlignment, FormatColor, Workbook};
+use xlsxwriter::{format::FormatAlignment, format::FormatColor, Format, Workbook};
 
 use super::OutputWriter;
 
@@ -13,20 +13,15 @@ impl OutputWriter for ExcelWriter {
         const START_HOUR: u8 = 5;
         const END_HOUR: u8 = 20;
 
-        let workbook = Workbook::new(&format!("{filename}.xlsx"));
-        let title_format = workbook.add_format().set_bold();
-        let subtitle_format = workbook.add_format();
-        let red_format = workbook
-            .add_format()
+        let workbook = Workbook::new(&format!("{filename}.xlsx"))?;
+        let mut red_format = Format::new();
+        red_format
             .set_bg_color(FormatColor::Red)
             .set_align(FormatAlignment::Center);
-        let green_format = workbook
-            .add_format()
+
+        let mut green_format = Format::new();
+        green_format
             .set_bg_color(FormatColor::Green)
-            .set_align(FormatAlignment::Center);
-        let blank_format = workbook
-            .add_format()
-            .set_bg_color(FormatColor::Gray)
             .set_align(FormatAlignment::Center);
 
         let mut sheet = workbook.add_worksheet(None)?;
@@ -37,7 +32,7 @@ impl OutputWriter for ExcelWriter {
             0,
             (schedules.len() + 1) as u16,
             temple.name.as_str(),
-            Some(&title_format),
+            Some(Format::new().set_bold()),
         )?;
         sheet.merge_range(
             1,
@@ -45,7 +40,7 @@ impl OutputWriter for ExcelWriter {
             1,
             (schedules.len() + 1) as u16,
             "Available slots for endowment",
-            Some(&subtitle_format),
+            Some(&Format::new()),
         )?;
 
         let mut row = 3;
@@ -101,7 +96,15 @@ impl OutputWriter for ExcelWriter {
                             };
                             sheet.write_number(row, col, remaining.into(), Some(format))?;
                         }
-                        None => sheet.write_blank(row, col, Some(&blank_format))?,
+                        None => sheet.write_blank(
+                            row,
+                            col,
+                            Some(
+                                Format::new()
+                                    .set_bg_color(FormatColor::Gray)
+                                    .set_align(FormatAlignment::Center),
+                            ),
+                        )?,
                     }
 
                     row += 1;

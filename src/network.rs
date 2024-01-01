@@ -10,8 +10,7 @@ pub fn get_appointments(client: &Client) -> Result<Vec<AppointmentJSON>> {
     // Fetch appointments.
     let appointments: Vec<AppointmentJSON> =
         ureq::get("https://tos.churchofjesuschrist.org/api/appointments")
-            .set("Cookie", client.headers.get("Cookie").unwrap())
-            .set("X-XSRF-TOKEN", client.headers.get("X-XSRF-TOKEN").unwrap())
+            .set("Cookie", &client.cookie)
             .call()?
             .into_json()?;
 
@@ -28,14 +27,13 @@ pub fn get_schedules(client: &Client, range: FetchRange, temple: &Temple) -> Res
     'fetch_loop: loop {
         let sessions: SessionsJSON =
             ureq::post("https://tos.churchofjesuschrist.org/api/templeSchedule/getSessionInfo")
-                .set("Cookie", client.headers.get("Cookie").unwrap())
-                .set("X-XSRF-TOKEN", client.headers.get("X-XSRF-TOKEN").unwrap())
+                .set("Cookie", &client.cookie)
                 .send_json(ureq::json!({
                     "sessionYear":next_date.year(),
                     "sessionMonth":next_date.month() as u8 - 1,
                     "sessionDay":next_date.day(),
                     "appointmentType":"PROXY_ENDOWMENT",
-                    "templeOrgId":temple.temple_org_id as u32
+                    "templeOrgId":temple.temple_org_id
                 }))?
                 .into_json()?;
 

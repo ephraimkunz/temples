@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::network::get_temples;
 use anyhow::Result;
-use clap::{ArgEnum, Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use client::Client;
 use data::{FetchRange, Temple};
 use network::{get_appointments, get_schedules};
@@ -30,7 +30,7 @@ enum Commands {
     /// Get list of temples
     Temples {
         /// Which format to use for outputting the list of temples
-        #[clap(short, long, arg_enum, default_value_t = TempleOutputFormat::Table)]
+        #[clap(short, long, value_enum, default_value_t = TempleOutputFormat::Table)]
         format: TempleOutputFormat,
     },
 
@@ -48,7 +48,7 @@ enum Commands {
         count: u32,
 
         /// Format that schedule is output in
-        #[clap(short = 'o', long = "output", arg_enum, default_value_t = ScheduleOutputFormat::Excel)]
+        #[clap(short = 'o', long = "output", value_enum, default_value_t = ScheduleOutputFormat::Excel)]
         format: ScheduleOutputFormat,
 
         /// The name of the output file
@@ -57,7 +57,7 @@ enum Commands {
     },
 }
 
-#[derive(ArgEnum, Clone)]
+#[derive(ValueEnum, Clone)]
 enum TempleOutputFormat {
     /// ASCII table
     Table,
@@ -94,6 +94,7 @@ fn main() -> Result<()> {
                     let date_format =
                         format_description!("[month repr:short] [day padding:none], [year]");
 
+                    let count = temples.len();
                     for temple in temples {
                         table.add_row(Row::new([
                             TableCell::new(temple.name),
@@ -107,6 +108,11 @@ fn main() -> Result<()> {
                             TableCell::new(temple.temple_org_id),
                         ]));
                     }
+
+                    table.add_row(Row::new([TableCell::new(format!(
+                        "Total Count: {}",
+                        count
+                    ))]));
 
                     println!("{}", table.render());
                 }

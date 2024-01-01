@@ -1,6 +1,6 @@
 use crate::data::{Day, Temple};
 use anyhow::Result;
-use clap::ArgEnum;
+use clap::ValueEnum;
 
 use self::{excel::ExcelWriter, html::HTMLWriter};
 
@@ -8,7 +8,7 @@ mod excel;
 mod html;
 
 #[allow(dead_code)]
-#[derive(ArgEnum, Clone)]
+#[derive(ValueEnum, Clone)]
 pub enum ScheduleOutputFormat {
     Html,
     Excel,

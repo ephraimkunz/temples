@@ -1,21 +1,18 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use headless_chrome::{
-    browser::tab::RequestInterceptionDecision,
-    protocol::network::{events::RequestInterceptedEventParams, methods::RequestPattern},
+    browser::tab::RequestPausedDecision,
+    protocol::cdp::Fetch::{events::RequestPausedEvent, RequestPattern},
     Browser, LaunchOptionsBuilder,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
-
-type Headers = HashMap<String, String>;
 
 // Lots of shenanigans since we can't directly set the headers inside the Fn interceptor because it's not FnMut.
 use std::sync::mpsc::{channel, Receiver, Sender};
-type MutexedHeaderSender = Mutex<Sender<Headers>>;
-type MutexedHeaderReceiver = Mutex<Receiver<Headers>>;
+type MutexedHeaderSender = Mutex<Sender<String>>;
+type MutexedHeaderReceiver = Mutex<Receiver<String>>;
 static HEADER_CHANNEL: Lazy<(MutexedHeaderSender, MutexedHeaderReceiver)> = Lazy::new(|| {
     let (tx, rx) = channel();
     (Mutex::new(tx), Mutex::new(rx))
@@ -23,7 +20,7 @@ static HEADER_CHANNEL: Lazy<(MutexedHeaderSender, MutexedHeaderReceiver)> = Lazy
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Client {
-    pub headers: Headers,
+    pub cookie: String,
 }
 
 impl Client {
@@ -36,8 +33,7 @@ impl Client {
 
             // Try an HTTP request to make sure the unserialized client has correct data.
             if let Ok(response) = ureq::get("https://tos.churchofjesuschrist.org/api/appointments")
-                .set("Cookie", client.headers.get("Cookie").unwrap())
-                .set("X-XSRF-TOKEN", client.headers.get("X-XSRF-TOKEN").unwrap())
+                .set("Cookie", &client.cookie)
                 .call()
             {
                 if response.status() == 200 {
@@ -46,103 +42,87 @@ impl Client {
             }
         }
 
-        let username = std::env::var("USERNAME")?;
-        let password = std::env::var("PASSWORD")?;
+        let username =
+            std::env::var("USERNAME").context("Unable to get environment variable USERNAME")?;
+        let password =
+            std::env::var("PASSWORD").context("Unable to get environment variable PASSWORD")?;
 
         // That didn't work, so go log in.
-        let launch_options = LaunchOptionsBuilder::default()
-            .headless(true)
-            .build()
-            .map_err(|s| anyhow::anyhow!(s))?;
-        let browser = Browser::new(launch_options).map_err(|e| e.compat())?;
+        let launch_options = LaunchOptionsBuilder::default().headless(true).build()?;
+        let browser = Browser::new(launch_options)?;
 
-        let tab = browser.wait_for_initial_tab().map_err(|e| e.compat())?;
+        let tab = browser.new_tab()?;
 
         tab.navigate_to(
             "https://www.churchofjesuschrist.org/temples/schedule/appointment?lang=eng",
-        )
-        .map_err(|e| e.compat())?;
+        )?;
 
         // Username. There's probably a better way to do this than clicking the element 3 times, but just doing it
         // once seems to fail on slow internet connections.
         for _ in 0..3 {
-            tab.wait_for_element("input#okta-signin-username")
-                .map_err(|e| e.compat())?
-                .click()
-                .map_err(|e| e.compat())?;
+            tab.wait_for_element("input#okta-signin-username")?
+                .click()?;
         }
 
-        tab.type_str(&username).map_err(|e| e.compat())?;
-        tab.wait_for_element("input#okta-signin-submit")
-            .map_err(|e| e.compat())?
-            .click()
-            .map_err(|e| e.compat())?;
+        tab.type_str(&username)?;
+        tab.wait_for_element("input#okta-signin-submit")?.click()?;
 
         // Password
-        tab.wait_for_element("input[type=password]")
-            .map_err(|e| e.compat())?
-            .click()
-            .map_err(|e| e.compat())?;
-        tab.type_str(&password).map_err(|e| e.compat())?;
+        tab.wait_for_element("input[type=password]")?.click()?;
+        tab.type_str(&password)?;
 
         std::thread::sleep(Duration::from_secs(1)); // Not pausing here sometimes results in crashes.
 
-        tab.wait_for_element("input[type=submit]")
-            .map_err(|e| e.compat())?
-            .click()
-            .map_err(|e| e.compat())?;
-
+        tab.wait_for_element("input[type=submit]")?.click()?;
         std::thread::sleep(Duration::from_secs(15));
 
-        tab.navigate_to("https://tos.churchofjesuschrist.org/?lang=eng")
-            .map_err(|e| e.compat())?;
+        tab.navigate_to("https://tos.churchofjesuschrist.org/?lang=eng")?;
 
-        tab.wait_for_element("button#select-this-temple-button")
-            .map_err(|e| e.compat())?
-            .click()
-            .map_err(|e| e.compat())?;
+        tab.wait_for_element("button#select-this-temple-button")?
+            .click()?;
 
-        let items = tab
-            .wait_for_elements("span.schedule-item-text")
-            .map_err(|e| e.compat())?;
+        let items = tab.wait_for_elements("span.schedule-item-text")?;
 
         assert!(items.len() == 4, "didn't find enough schedule items");
 
         // Get the info we need to start requesting stuff ourselves.
         let pattern = RequestPattern {
             url_pattern: None,
-            resource_type: Some("XHR"),
-            interception_stage: Some("Request"),
+            resource_Type: Some(headless_chrome::protocol::cdp::Network::ResourceType::Xhr),
+            request_stage: Some(headless_chrome::protocol::cdp::Fetch::RequestStage::Request),
         };
 
-        let interceptor = Box::new(|_, _, params: RequestInterceptedEventParams| {
-            let request = params.request;
+        let interceptor = Arc::new(|_, _, event: RequestPausedEvent| {
+            let request = event.params.request;
             if request.url
                 == "https://tos.churchofjesuschrist.org/api/templeSchedule/getSessionInfo"
                 && request.method == "POST"
             {
-                HEADER_CHANNEL
-                    .0
-                    .lock()
-                    .unwrap()
-                    .send(request.headers)
-                    .unwrap();
+                if let Some(serde_json::Value::Object(json_headers)) = request.headers.0 {
+                    if let Some(serde_json::value::Value::String(cookie)) =
+                        json_headers.get("Cookie")
+                    {
+                        HEADER_CHANNEL
+                            .0
+                            .lock()
+                            .unwrap()
+                            .send(cookie.to_string())
+                            .unwrap();
+                    }
+                }
             }
-            RequestInterceptionDecision::Continue
+            RequestPausedDecision::Continue(None)
         });
 
-        tab.enable_request_interception(&[pattern], interceptor)
-            .map_err(|e| e.compat())?;
+        tab.enable_fetch(Some(&[pattern]), None)?;
+        tab.enable_request_interception(interceptor)?;
 
         let endowment_item = &items[2];
-        endowment_item.click().map_err(|e| e.compat())?;
+        endowment_item.click()?;
 
-        let headers = HEADER_CHANNEL.1.lock().unwrap().recv().unwrap();
-        if headers.is_empty() {
-            return Err(anyhow::anyhow!("Header for making queries has no entries"));
-        }
+        let cookie = HEADER_CHANNEL.1.lock().unwrap().recv().unwrap();
 
-        let client = Self { headers };
+        let client = Self { cookie };
 
         let file = std::fs::File::create(Self::FILENAME)?;
         bincode::serialize_into(file, &client)?;
